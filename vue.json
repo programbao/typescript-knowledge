@@ -1,0 +1,21 @@
+{
+	"Vue Template": {
+		"prefix": "vueTemplate",
+		"body":[
+		"<template>\n\t<div>\n\n\t</div>\n</template>\n\n",
+		"<script lang=\"ts\">\nimport { Component, Vue } from 'vue-property-decorator'; \n\n@Component\nexport default class ${l:ClassName extends Vue {}\n$0\n} \n</script>\n\n",
+		 "<style lang=\"stylus\" scoped>\n\n</style>"],
+		"description":"生成Vue文件的结构"
+		},
+	
+		
+		"App Template": {
+		"prefix": "appTemplate",
+		"body": [
+		"<template>\n\t<div class=\"app\">\n\t\t<router-view />\n\t</div>\n</template>\n\n", 
+		"<script lang=\"ts\">\nimport { Component, Vue } from 'vue-property-decorator'; \n\n@Component\nexport default class App extends Vue {\n$0\n}\n</script>\n\n",
+		"<style lang=\"stylus\"></style>"],
+		"description":"生成App文件的结构"
+	}
+
+}
