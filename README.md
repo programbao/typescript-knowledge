@@ -1,3 +1,0 @@
-# study-typscript
-study typscript
-

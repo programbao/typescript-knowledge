@@ -11,6 +11,7 @@ interface BodyRequest extends Request {
   body: { [key: string]: string | undefined };
 }
 
+// 定义中间件
 const checkLogin = (
   req: BodyRequest,
   res: Response,
