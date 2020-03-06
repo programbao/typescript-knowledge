@@ -16,8 +16,8 @@ const router = express.Router();
 // }
 // 编写接口
 /**
- * @api {post} /login  用户登录
- * @apiName 用户登录
+ * @api {post} /reg  用户注册
+ * @apiName 用户注册
  * @apiGroup User
  *
  * @apiParam {String} username 用户名
@@ -29,24 +29,40 @@ const router = express.Router();
  * @apiParam {String} skill 技能
  * @apiParam {String} code 邮箱验证码
  */
-router.post("/login", (req: Request, res: Response) => {
-  const userModelSchema = {
-    username: "我叫宝",
-    pwd: "123567",
-    userAccount: "我叫宝",
-    college: "土木工程，王牌建筑",
-    grade: "2017级",
-    state: 1,
-    skill: "希望成为前端工程师"
-  };
+router.post("/reg", (req: Request, res: Response) => {
+  console.log(req.body);
+  // const userModelSchema = {
+  //   username: "我叫宝",
+  //   pwd: "123567",
+  //   userAccount: "我叫宝",
+  //   college: "土木工程，王牌建筑",
+  //   grade: "2017级",
+  //   state: 1,
+  //   skill: "希望成为前端工程师"
+  // };
+  function tipMsg(err: string) {
+    const txt = err.split("Path"); // 切割信息
+    const keyArray: any = [];
+    txt.splice(0, 1); // 去掉第一个信息
+    txt.forEach((item: any) => {
+      var keyword = item.split(" ").splice(1, 1);
+      keyArray.push(keyword); // 将缺失的信息添加进数组
+    });
+    return keyArray.join();
+  }
+
   userModel
-    .insertMany(userModelSchema)
-    .then(err => {
-      console.log("成功");
-      res.json({ err: 0, msg: "登录已经开始,已经插入用户信息" });
+    .insertMany(req.body)
+    .then(() => {
+      res.json({ err: 0, msg: "注册成功", obj: req.body });
     })
     .catch(err => {
-      res.json({ err: -1, msg: err.message });
+      try {
+        const keytxt = tipMsg(err.message);
+        res.json({ err: -1, msg: `${keytxt}是必需的` });
+      } catch (error) {
+        res.json({ err: -1, msg: err.message });
+      }
     });
 });
 export default router;
