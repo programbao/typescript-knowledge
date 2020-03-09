@@ -12,6 +12,7 @@ var userModelSchema = {
     college: { type: String, required: true },
     grade: { type: String, required: true },
     state: { type: Number, default: 0 },
+    code: { type: Number, default: 0 },
     skill: String
 };
 var userSchema = new mongoose_1.default.Schema(userModelSchema);

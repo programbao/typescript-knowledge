@@ -5,18 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var userSchema_1 = __importDefault(require("../db/model/userSchema")); // 数据库用户模块
+var index_1 = require("../utils/index");
 // 开启路由
 var router = express_1.default.Router();
-// // ts接口
-// interface userInfo {
-//   username: string;
-//   pwd: string;
-//   userAccount: string;
-//   college: string;
-//   grade: string;
-//   state?: 0;
-//   skill: String;
-// }
+var mailCode = 0; // 邮箱验证码
 // 编写接口
 /**
  * @api {post} /reg  用户注册
@@ -33,26 +25,11 @@ var router = express_1.default.Router();
  * @apiParam {String} code 邮箱验证码
  */
 router.post("/reg", function (req, res) {
-    console.log(req.body);
-    // const userModelSchema = {
-    //   username: "我叫宝",
-    //   pwd: "123567",
-    //   userAccount: "我叫宝",
-    //   college: "土木工程，王牌建筑",
-    //   grade: "2017级",
-    //   state: 1,
-    //   skill: "希望成为前端工程师"
-    // };
-    function tipMsg(err) {
-        var txt = err.split("Path"); // 切割信息
-        var keyArray = [];
-        txt.splice(0, 1); // 去掉第一个信息
-        txt.forEach(function (item) {
-            var keyword = item.split(" ").splice(1, 1);
-            keyArray.push(keyword); // 将缺失的信息添加进数组
-        });
-        return keyArray.join();
-    }
+    var code = req.body.code;
+    if (!code)
+        return res.json({ err: 0, msg: "缺少验证码" });
+    if (code !== mailCode)
+        return res.json({ err: 0, msg: "验证码不正确" });
     userSchema_1.default
         .insertMany(req.body)
         .then(function () {
@@ -60,12 +37,108 @@ router.post("/reg", function (req, res) {
     })
         .catch(function (err) {
         try {
-            var keytxt = tipMsg(err.message);
+            var keytxt = index_1.tipMsg(err.message);
             res.json({ err: -1, msg: keytxt + "\u662F\u5FC5\u9700\u7684" });
         }
         catch (error) {
             res.json({ err: -1, msg: err.message });
         }
+    });
+});
+/**
+ * @api {post} /login  用户登录
+ * @apiName 用户登录
+ * @apiGroup User
+ *
+ * @apiParam {String} account (username/userAccount) 用户名/用户账号
+ * @apiParam {String} pwd 用户密码
+ */
+router.post("/login", function (req, res) {
+    var _a = req.body, account = _a.account, pwd = _a.pwd;
+    if (!account || !pwd)
+        return res.json({ err: -1, msg: "请正确填写账号和密码" });
+    var accountInfo = [{ username: account }, { userAccount: account }];
+    userSchema_1.default
+        .find({ $or: accountInfo })
+        .then(function (suc) {
+        if (suc.length !== 0) {
+            return userSchema_1.default.find({
+                $or: accountInfo,
+                pwd: pwd
+            });
+        }
+        else {
+            res.json({ err: -2, msg: "用户未注册" });
+        }
+    })
+        .then(function (suc) {
+        if (suc.length !== 0) {
+            res.json({ err: 0, msg: "登录成功" });
+        }
+        else {
+            res.json({ err: -2, msg: "密码错误" });
+        }
+    })
+        .catch(function (err) {
+        res.json({ err: -1, msg: err.message });
+    });
+});
+/**
+ * @api {post} /forgetAccount  忘记密码
+ * @apiName 忘记密码
+ * @apiGroup User
+ *
+ * @apiParam {String} userAccount 用户账号(邮箱)
+ * @apiParam {String} code 用户验证码
+ */
+router.post("/forgetAccount", function (req, res) {
+    var _a = req.body, userAccount = _a.userAccount, pwd = _a.pwd, id = _a.id, code = _a.code;
+    if (!userAccount || !pwd)
+        return res.json({ err: -1, msg: "请正确填写账户密码" });
+    if (!id)
+        return res.json({ err: -4, msg: "缺少用户id" });
+    if (!code)
+        return res.json({ err: 0, msg: "缺少验证码" });
+    if (code !== mailCode)
+        return res.json({ err: 0, msg: "验证码不正确" });
+    userSchema_1.default
+        .find({ _id: id })
+        .then(function (suc) {
+        if (suc.length === 1) {
+            suc[0].pwd = ~~pwd;
+            return userSchema_1.default.updateOne({ _id: id }, suc[0]);
+        }
+        else {
+            res.json({ err: -1, msg: "用户不存在" });
+        }
+    })
+        .then(function (suc) {
+        res.json({ err: 0, msg: "更新成功" });
+    })
+        .catch(function (err) {
+        res.json({ err: -3, msg: err.message });
+    });
+});
+/**
+ * @api {post} /sendMail  用户获取验证码
+ * @apiName 获取验证码
+ * @apiGroup User
+ *
+ * @apiParam {String} userAccount 用户账号---邮箱
+ */
+router.post("/getCode", function (req, res) {
+    var userAccount = req.body.userAccount;
+    if (!userAccount)
+        return res.json({ err: -1, msg: "请填写邮箱" });
+    // 五位随机数
+    var code = parseInt(Math.random() * 10000 + 10000);
+    mailCode = code;
+    index_1.sendMail(userAccount, code)
+        .then(function () {
+        res.json({ err: 0, msg: "获取成功，请查看你邮箱" });
+    })
+        .catch(function (err) {
+        res.json({ err: -1, msg: err.message });
     });
 });
 exports.default = router;
