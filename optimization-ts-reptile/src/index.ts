@@ -15,7 +15,6 @@ app.use(
   cookieSession({
     name: "session",
     keys: ["xiaoxiaobao"],
-
     // Cookie Options
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   })

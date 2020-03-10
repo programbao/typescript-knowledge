@@ -1,13 +1,28 @@
 import express from "express";
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import userModel from "../db/model/userSchema"; // 数据库用户模块
-import { sendMail, tipMsg } from "../utils/index";
+import { sendMail, tipMsg, createToken, verifyToken } from "../utils/index";
 // 开启路由
 const router = express.Router();
-
-// interface statusCode {}
-
 var mailCode: number = 0; // 邮箱验证码
+
+// 装饰器
+function checkToken() {
+  return function(res: Response, next: NextFunction) {
+    verifyToken("token")
+      .then(sus => {
+        if (typeof sus === "object") {
+          next();
+        } else {
+          res.json({ err: -5, msg: "token无效" });
+        }
+      })
+      .catch(err => {
+        res.json({ err: -6, msg: err.message });
+      });
+  };
+}
+
 // 编写接口
 // ====== 注册 =====
 /**
@@ -52,15 +67,17 @@ router.post("/reg", (req: Request, res: Response) => {
  * @apiParam {String} account (username/userAccount) 用户名/用户账号
  * @apiParam {Number} pwd 用户密码
  */
+
 router.post("/login", (req: Request, res: Response) => {
   let { account, pwd } = req.body;
   if (!account || !pwd)
     return res.json({ err: -1, msg: "请正确填写账号和密码" });
   let accountInfo = [{ username: account }, { userAccount: account }];
+  // 先找是否有该用户，有就登，没就返回相应的数据
   userModel
     .find({ $or: accountInfo })
-    .then(suc => {
-      if (suc.length !== 0) {
+    .then(sus => {
+      if (sus.length !== 0) {
         return userModel.find({
           $or: accountInfo,
           pwd
@@ -69,9 +86,18 @@ router.post("/login", (req: Request, res: Response) => {
         res.json({ err: -2, msg: "用户未注册" });
       }
     })
-    .then((suc: any) => {
-      if (suc.length !== 0) {
-        res.json({ err: 0, msg: "登录成功" });
+    .then((sus: any) => {
+      if (sus.length !== 0 && req.session) {
+        // 标识登录会议session
+        req.session.login = true;
+        req.sessionOptions.maxAge = 60 * 1000;
+        // 载荷
+        let payload = {
+          exp: Math.floor(Date.now() / 1000) + 60 * 60, // 创建验证过期时间
+          userInfo: account // 用户信息
+        };
+        let token = createToken(payload);
+        res.json({ err: 0, msg: "登录成功", token });
       } else {
         res.json({ err: -2, msg: "密码错误" });
       }
@@ -79,6 +105,20 @@ router.post("/login", (req: Request, res: Response) => {
     .catch(err => {
       res.json({ err: -1, msg: err.message });
     });
+});
+
+// ====== 退出 ======
+/**
+ * @api {post} /logout  用户退出
+ * @apiName 用户退出
+ * @apiGroup User
+ */
+router.post("/logout", (req: Request, res: Response) => {
+  if (req.session && req.session.login) {
+    req.session.login = false;
+    res.json({ err: 0, msg: "退出成功" });
+  }
+  res.json({ err: -4, msg: "退出失败" });
 });
 
 // ====== 忘记密码 ======
@@ -99,15 +139,15 @@ router.post("/forgetAccount", (req: Request, res: Response) => {
   if (code !== mailCode) return res.json({ err: 0, msg: "验证码不正确" });
   userModel
     .find({ _id: id })
-    .then((suc: any) => {
-      if (suc.length === 1) {
-        suc[0].pwd = ~~pwd;
-        return userModel.updateOne({ _id: id }, suc[0]);
+    .then((sus: any) => {
+      if (sus.length === 1) {
+        sus[0].pwd = ~~pwd;
+        return userModel.updateOne({ _id: id }, sus[0]);
       } else {
         res.json({ err: -1, msg: "用户不存在" });
       }
     })
-    .then(suc => {
+    .then(sus => {
       res.json({ err: 0, msg: "更新成功" });
     })
     .catch(err => {
@@ -143,16 +183,46 @@ router.delete("/delUser", (req: Request, res: Response) => {
  * @apiGroup User
  *
  * @apiParam {String} account (username/userAccount) 用户名/用户账号
+ * @apiParam {Nubmer} page 页数
+ * @apiParam {Nubmer} pageSize 每页返回的个数
  */
 router.get("/search", (req: Request, res: Response) => {
-  let { account } = req.query;
-  if (!account)
-    return res.json({ err: -1, msg: "请输入要搜索的用户账号/用户名称" });
-  let accountInfo = [{ username: account }, { userAccount: account }];
+  // 验证是否登录了
+  if (!(req.session && req.session.login)) {
+    res.json({ err: -1, msg: "用户未登陆" });
+  }
+  let { account, page, pageSize } = req.query;
+  pageSize = pageSize ? pageSize : 2; // 返回个数
+  page = page ? page : 1; //当前页数
+  let accountInfo: any;
+  if (account) {
+    accountInfo = { $or: [{ username: account }, { userAccount: account }] };
+  }
+  // 获取总数
+  let totel: number;
+  let lastPage: number;
+  userModel.countDocuments(accountInfo).then(sus => {
+    totel = sus;
+    lastPage = Math.ceil(sus / pageSize);
+  });
+  // 设置限制条数和跳过去数据----limit和skip
   userModel
-    .find({ $or: accountInfo })
+    .find(accountInfo)
+    .limit(~~pageSize)
+    .skip((page - 1) * pageSize)
     .then(sus => {
-      res.json({ err: 0, msg: "搜索成功", lists: sus });
+      let lists: any[] = sus;
+      res.json({
+        err: 0,
+        msg: "搜索成功",
+        data: {
+          lists,
+          totel,
+          currentPage: page,
+          lastPage,
+          pageSize
+        }
+      });
     })
     .catch(err => {
       res.json({ err: -1, msg: err.message });

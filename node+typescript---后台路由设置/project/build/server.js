@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 require("./db/connect"); // 连接数据库
+var cookie_session_1 = __importDefault(require("cookie-session"));
 var body_parser_1 = __importDefault(require("body-parser")); // 解析相应请求包
 var UserRouter_1 = __importDefault(require("./router/UserRouter")); // 导入路由
 var app = express_1.default(); // 初始化服务
@@ -12,6 +13,12 @@ var app = express_1.default(); // 初始化服务
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 // // 解析json
 app.use(body_parser_1.default.json());
+// 初始化cookie-session
+app.use(cookie_session_1.default({
+    name: "session",
+    keys: ["xiaoxiaobao"],
+    maxAge: 60 * 60 * 1000
+}));
 // 使用路由
 app.use(UserRouter_1.default);
 // 监听网络接口

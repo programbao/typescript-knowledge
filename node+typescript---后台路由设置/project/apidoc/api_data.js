@@ -1,5 +1,28 @@
 define({ "api": [
   {
+    "type": "delete",
+    "url": "/delUser",
+    "title": "删除用户",
+    "name": "删除用户",
+    "group": "User",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "id",
+            "description": "<p>用户唯一id</p>"
+          }
+        ]
+      }
+    },
+    "version": "0.0.0",
+    "filename": "src/router/UserRouter.ts",
+    "groupTitle": "User"
+  },
+  {
     "type": "post",
     "url": "/forgetAccount",
     "title": "忘记密码",
@@ -17,7 +40,7 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "String",
+            "type": "Number",
             "optional": false,
             "field": "code",
             "description": "<p>用户验证码</p>"
@@ -47,7 +70,7 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "String",
+            "type": "Number",
             "optional": false,
             "field": "pwd",
             "description": "<p>用户密码</p>"
@@ -89,7 +112,7 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "String",
+            "type": "Number",
             "optional": false,
             "field": "code",
             "description": "<p>邮箱验证码</p>"
@@ -119,7 +142,7 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "String",
+            "type": "Number",
             "optional": false,
             "field": "pwd",
             "description": "<p>用户密码</p>"
@@ -127,6 +150,53 @@ define({ "api": [
         ]
       }
     },
+    "version": "0.0.0",
+    "filename": "src/router/UserRouter.ts",
+    "groupTitle": "User"
+  },
+  {
+    "type": "get",
+    "url": "/search",
+    "title": "用户登录",
+    "name": "用户登录",
+    "group": "User",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "account",
+            "description": "<p>(username/userAccount) 用户名/用户账号</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Nubmer",
+            "optional": false,
+            "field": "page",
+            "description": "<p>页数</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Nubmer",
+            "optional": false,
+            "field": "pageSize",
+            "description": "<p>每页返回的个数</p>"
+          }
+        ]
+      }
+    },
+    "version": "0.0.0",
+    "filename": "src/router/UserRouter.ts",
+    "groupTitle": "User"
+  },
+  {
+    "type": "post",
+    "url": "/logout",
+    "title": "用户退出",
+    "name": "用户退出",
+    "group": "User",
     "version": "0.0.0",
     "filename": "src/router/UserRouter.ts",
     "groupTitle": "User"
