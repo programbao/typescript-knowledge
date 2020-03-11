@@ -1,9 +1,10 @@
 import express from "express";
-import { Request, Response } from "express";
 import "./db/connect"; // 连接数据库
 import cookieSession from "cookie-session";
 import bodyParser from "body-parser"; // 解析相应请求包
-import UserRouter from "./router/UserRouter"; // 导入路由
+import "./controller/UserController"; // 初始化对应接口路由
+import router from "./router/router";
+
 const app = express(); // 初始化服务
 // 解析表单数据  x-www-form-urlencode
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -18,7 +19,7 @@ app.use(
   })
 );
 // 使用路由
-app.use(UserRouter);
+app.use(router);
 // 监听网络接口
 app.listen(3000, () => {
   console.log("open server port in 3000");

@@ -1,28 +1,5 @@
 define({ "api": [
   {
-    "type": "delete",
-    "url": "/delUser",
-    "title": "删除用户",
-    "name": "删除用户",
-    "group": "User",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "id",
-            "description": "<p>用户唯一id</p>"
-          }
-        ]
-      }
-    },
-    "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
-    "groupTitle": "User"
-  },
-  {
     "type": "post",
     "url": "/forgetAccount",
     "title": "忘记密码",
@@ -49,7 +26,7 @@ define({ "api": [
       }
     },
     "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
+    "filename": "src/controller/UserController.ts",
     "groupTitle": "User"
   },
   {
@@ -121,7 +98,7 @@ define({ "api": [
       }
     },
     "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
+    "filename": "src/controller/UserController.ts",
     "groupTitle": "User"
   },
   {
@@ -151,44 +128,7 @@ define({ "api": [
       }
     },
     "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
-    "groupTitle": "User"
-  },
-  {
-    "type": "get",
-    "url": "/search",
-    "title": "用户登录",
-    "name": "用户登录",
-    "group": "User",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "account",
-            "description": "<p>(username/userAccount) 用户名/用户账号</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "Nubmer",
-            "optional": false,
-            "field": "page",
-            "description": "<p>页数</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "Nubmer",
-            "optional": false,
-            "field": "pageSize",
-            "description": "<p>每页返回的个数</p>"
-          }
-        ]
-      }
-    },
-    "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
+    "filename": "src/controller/UserController.ts",
     "groupTitle": "User"
   },
   {
@@ -198,30 +138,7 @@ define({ "api": [
     "name": "用户退出",
     "group": "User",
     "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
-    "groupTitle": "User"
-  },
-  {
-    "type": "post",
-    "url": "/sendMail",
-    "title": "用户获取验证码",
-    "name": "获取验证码",
-    "group": "User",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "userAccount",
-            "description": "<p>用户账号---邮箱</p>"
-          }
-        ]
-      }
-    },
-    "version": "0.0.0",
-    "filename": "src/router/UserRouter.ts",
+    "filename": "src/controller/UserController.ts",
     "groupTitle": "User"
   }
 ] });
