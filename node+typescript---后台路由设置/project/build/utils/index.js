@@ -7,3 +7,4 @@ __export(require("./sendMail"));
 __export(require("./tipMsg"));
 __export(require("./token"));
 __export(require("./randomSignature"));
+__export(require("./handleFn"));

@@ -12,43 +12,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var router_1 = __importDefault(require("../router/router"));
-var decorator_1 = require("../decorator");
 require("reflect-metadata");
 var userSchema_1 = __importDefault(require("../db/model/userSchema")); // 数据库用户模块
 var index_1 = require("../utils/index");
-var methods;
-(function (methods) {
-    methods["get"] = "get";
-    methods["post"] = "post";
-})(methods || (methods = {}));
-function controller(target) {
-    for (var key in target.prototype) {
-        var path = Reflect.getMetadata("path", target.prototype, key);
-        var method = Reflect.getMetadata("method", target.prototype, key);
-        router_1.default[method](path, target.prototype[key]);
-    }
-}
+var decorator_1 = require("../decorator");
 var UserController = /** @class */ (function () {
     function UserController() {
-        // 里面处理用户相关的处理
-        // ====== 注册 =====
-        /**
-         * @api {post} /reg  用户注册
-         * @apiName 用户注册
-         * @apiGroup User
-         *
-         * @apiParam {String} username 用户名
-         * @apiParam {Number} pwd 用户密码
-         * @apiParam {String} userAccount 用户账号
-         * @apiParam {String} college 学院
-         * @apiParam {String} grade 年级
-         * @apiParam {String} state 参赛状态
-         * @apiParam {String} skill 技能
-         * @apiParam {Number} code 邮箱验证码
-         */
-        this.mailCode = 0;
     }
+    // 里面处理用户相关的处理
+    //
     // ====== 登录 ======
     /**
      * @api {post} /login  用户登录
@@ -71,13 +43,14 @@ var UserController = /** @class */ (function () {
                 return userSchema_1.default.find({
                     $or: accountInfo,
                     pwd: pwd
-                });
+                }); // 返回登录
             }
             else {
                 res.json({ err: -2, msg: "用户未注册" });
             }
         })
             .then(function (sus) {
+            // 登录处理
             if (sus.length !== 0 && req.session) {
                 // 载荷
                 var payload = {
@@ -87,7 +60,7 @@ var UserController = /** @class */ (function () {
                 var token = index_1.createToken(payload);
                 // 加入登录token
                 req.session.token = token;
-                // 标识登录会议session
+                // 标识登录会议(session)login
                 req.session.login = true;
                 res.json({ err: 0, msg: "登录成功", token: token });
             }
@@ -99,15 +72,44 @@ var UserController = /** @class */ (function () {
             res.json({ err: -1, msg: err.message });
         });
     };
+    // ====== 注册 =====
+    /**
+     * @api {post} /reg  用户注册
+     * @apiName 用户注册
+     * @apiGroup User
+     *
+     * @apiParam {String} username 用户名
+     * @apiParam {Number} pwd 用户密码
+     * @apiParam {String} userAccount 用户账号
+     * @apiParam {String} college 学院
+     * @apiParam {String} grade 年级
+     * @apiParam {String} state 参赛状态
+     * @apiParam {String} skill 技能
+     * @apiParam {Number} code 邮箱验证码
+     */
     UserController.prototype.register = function (req, res) {
-        var code = req.body.code;
+        var _a = req.body, code = _a.code, userAccount = _a.userAccount, pwd = _a.pwd;
         if (!code)
             return res.json({ err: 0, msg: "缺少验证码" });
-        if (code !== this.mailCode)
-            return res.json({ err: 0, msg: "验证码不正确" });
+        if (!userAccount)
+            return res.json({ err: 0, msg: "请填写你要注册的账号" });
+        if (!pwd)
+            return res.json({ err: 0, msg: "请设置密码" });
+        index_1.checkCode(req, res, ~~code);
+        // 这里是查询是否有这个，有就不注册，没有就注册
         userSchema_1.default
-            .insertMany(req.body)
+            .find({ userAccount: userAccount, pwd: pwd })
+            .then(function (sus) {
+            console.log(sus);
+            if (sus.length !== 0) {
+                res.json({ err: -1, msg: "该用户已经存在" });
+            }
+            else {
+                return userSchema_1.default.insertMany(req.body);
+            }
+        })
             .then(function () {
+            req.session.mailCode = 0;
             res.json({ err: 0, msg: "注册成功", obj: req.body });
         })
             .catch(function (err) {
@@ -133,7 +135,7 @@ var UserController = /** @class */ (function () {
             req.session.token = "";
             res.json({ err: 0, msg: "退出成功" });
         }
-        res.json({ err: -4, msg: "退出失败" });
+        res.json({ err: -4, msg: "退出失败/检查是否已经登录" });
     };
     // ====== 忘记密码 ======
     /**
@@ -152,8 +154,7 @@ var UserController = /** @class */ (function () {
             return res.json({ err: -4, msg: "缺少用户id" });
         if (!code)
             return res.json({ err: 0, msg: "缺少验证码" });
-        if (code !== this.mailCode)
-            return res.json({ err: 0, msg: "验证码不正确" });
+        index_1.checkCode(req, res, code);
         userSchema_1.default
             .find({ _id: id })
             .then(function (sus) {
@@ -172,6 +173,102 @@ var UserController = /** @class */ (function () {
             res.json({ err: -3, msg: err.message });
         });
     };
+    // ====== 删除 ======
+    /**
+     * @api {delete} /delUser  删除用户
+     * @apiName 删除用户
+     * @apiGroup User
+     *
+     * @apiParam {String} id 用户唯一id
+     */
+    UserController.prototype.delUser = function (req, res) {
+        var id = req.body.id;
+        if (!id)
+            return res.json({ err: -1, msg: "缺少用户id" });
+        userSchema_1.default
+            .deleteOne({ _id: id })
+            .then(function (sus) {
+            res.json({ err: 0, msg: "删除成功" });
+        })
+            .catch(function (err) {
+            res.json({ err: -1, msg: err.message });
+        });
+    };
+    // ====== 查询/查找 ======
+    /**
+     * @api {get} /search  用户查询
+     * @apiName 用户登录
+     * @apiGroup User
+     *
+     * @apiParam {String} account (username/userAccount) 用户名/用户账号
+     * @apiParam {Nubmer} page 页数
+     * @apiParam {Nubmer} pageSize 每页返回的个数
+     */
+    UserController.prototype.search = function (req, res) {
+        // 验证是否登录了
+        if (!(req.session && req.session.login)) {
+            res.json({ err: -1, msg: "用户未登陆" });
+        }
+        var _a = req.query, account = _a.account, page = _a.page, pageSize = _a.pageSize;
+        pageSize = pageSize ? pageSize : 2; // 返回个数
+        page = page ? page : 1; //当前页数
+        var accountInfo;
+        if (account) {
+            accountInfo = { $or: [{ username: account }, { userAccount: account }] };
+        }
+        // 获取总数
+        var totel;
+        var lastPage;
+        userSchema_1.default.countDocuments(accountInfo).then(function (sus) {
+            totel = sus;
+            lastPage = Math.ceil(sus / pageSize);
+        });
+        // 设置限制条数和跳过去数据----limit和skip
+        userSchema_1.default
+            .find(accountInfo)
+            .limit(~~pageSize)
+            .skip((page - 1) * pageSize)
+            .then(function (sus) {
+            var lists = sus;
+            res.json({
+                err: 0,
+                msg: "搜索成功",
+                data: {
+                    lists: lists,
+                    totel: totel,
+                    currentPage: page,
+                    lastPage: lastPage,
+                    pageSize: pageSize
+                }
+            });
+        })
+            .catch(function (err) {
+            res.json({ err: -1, msg: err.message });
+        });
+    };
+    // ====== 验证码 ======
+    /**
+     * @api {post} /sendMail  用户获取验证码
+     * @apiName 获取验证码
+     * @apiGroup User
+     *
+     * @apiParam {String} userAccount 用户账号---邮箱
+     */
+    UserController.prototype.getCode = function (req, res) {
+        var userAccount = req.body.userAccount;
+        if (!userAccount)
+            return res.json({ err: -1, msg: "请填写邮箱" });
+        // 五位随机数
+        var mailCode = parseInt(Math.random() * 10000 + 10000);
+        index_1.sendMail(userAccount, mailCode)
+            .then(function () {
+            req.session.mailCode = mailCode;
+            res.json({ err: 0, msg: "获取成功，请查看你邮箱" });
+        })
+            .catch(function (err) {
+            res.json({ err: -1, msg: err.message });
+        });
+    };
     __decorate([
         decorator_1.post("/login"),
         __metadata("design:type", Function),
@@ -186,6 +283,7 @@ var UserController = /** @class */ (function () {
     ], UserController.prototype, "register", null);
     __decorate([
         decorator_1.get("/logout"),
+        decorator_1.use("checkLogin", index_1.checkLogin),
         __metadata("design:type", Function),
         __metadata("design:paramtypes", [Object, Object]),
         __metadata("design:returntype", void 0)
@@ -196,8 +294,32 @@ var UserController = /** @class */ (function () {
         __metadata("design:paramtypes", [Object, Object]),
         __metadata("design:returntype", void 0)
     ], UserController.prototype, "forgetAccount", null);
+    __decorate([
+        decorator_1.del("/delUser"),
+        decorator_1.use("checkLogin", index_1.checkLogin),
+        decorator_1.use("checkToken", index_1.checkToken),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object, Object]),
+        __metadata("design:returntype", void 0)
+    ], UserController.prototype, "delUser", null);
+    __decorate([
+        decorator_1.get("/search"),
+        decorator_1.use("checkLogin", index_1.checkLogin),
+        decorator_1.use("checkToken", index_1.checkToken),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object, Object]),
+        __metadata("design:returntype", void 0)
+    ], UserController.prototype, "search", null);
+    __decorate([
+        decorator_1.post("/getCode"),
+        decorator_1.use("checkLogin", index_1.checkLogin),
+        decorator_1.use("checkToken", index_1.checkToken),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object, Object]),
+        __metadata("design:returntype", void 0)
+    ], UserController.prototype, "getCode", null);
     UserController = __decorate([
-        controller
+        decorator_1.controller
     ], UserController);
     return UserController;
 }());
